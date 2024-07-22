@@ -4,15 +4,19 @@ import { validate } from "../utils/validate";
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  updateProfile,
 } from "firebase/auth";
 import { auth } from "../utils/Firebase";
 import { useNavigate } from "react-router-dom";
+import { useDispatch } from "react-redux";
+import { addUser } from "../utils/userSlice";
+import { USER_AVATAR } from "../utils/constants";
 const Login = () => {
-  const navigate = useNavigate();
+  const dispatch = useDispatch();
   const [isSignInForm, setIsSignInForm] = useState(true);
   const [errorMessage, setErrorMessage] = useState(null);
 
-  // const fullName = useRef(null);
+  const fullName = useRef(null);
   const email = useRef(null);
   const password = useRef(null);
   const toggleSignInForm = () => {
@@ -33,16 +37,30 @@ const Login = () => {
         .then((userCredential) => {
           // Signed up
           const user = userCredential.user;
-          console.log(user, "user");
+          updateProfile(user, {
+            displayName: fullName.current.value,
+            photoURL: USER_AVATAR,
+          })
+            .then(() => {
+              const { uid, email, displayName, photoURL } = auth.currentUser;
+              dispatch(
+                addUser({
+                  uid: uid,
+                  email: email,
+                  displayName: displayName,
+                  photoURL: photoURL,
+                })
+              );
+            })
+            .catch((error) => {
+              setErrorMessage(error.message);
+            });
 
           // ...
         })
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          console.log(errorCode, "errorCode");
-          console.log(errorMessage, "errormsg");
-          // ..
         });
     } else {
       //signin logic
@@ -54,14 +72,10 @@ const Login = () => {
         .then((userCredential) => {
           // Signed in
           const user = userCredential.user;
-          console.log(user);
-          navigate("/browse");
-          // ...
         })
         .catch((error) => {
           const errorCode = error.code;
           const errorMessage = error.message;
-          console.log(errorCode + "-" + errorMessage);
         });
     }
   };
@@ -91,7 +105,7 @@ const Login = () => {
           <input
             type="text"
             placeholder="Full Name"
-            // ref={fullName}
+            ref={fullName}
             className="p-4 my-4 w-full bg-gray-700"
           />
         ) : (
